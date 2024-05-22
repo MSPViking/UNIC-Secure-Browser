@@ -1,25 +1,20 @@
 Office.onReady(() => {
-    // Only run this when the Office context is ready.
     if (Office.context.mailbox.item) {
-        const item = Office.context.mailbox.item;
-        getBody(item).then(body => {
-            const urls = extractUrls(body);
-            displayUrls(urls);
-        }).catch(error => {
-            console.error('Error:', error);
-        });
+        // When the add-in is ready, process the email body
+        processEmailBody();
     }
 });
 
-async function getBody(item) {
-    return new Promise((resolve, reject) => {
-        item.body.getAsync("text", (result) => {
-            if (result.status === Office.AsyncResultStatus.Succeeded) {
-                resolve(result.value);
-            } else {
-                reject(result.error);
-            }
-        });
+function processEmailBody() {
+    const item = Office.context.mailbox.item;
+    item.body.getAsync("text", (result) => {
+        if (result.status === Office.AsyncResultStatus.Succeeded) {
+            const body = result.value;
+            const urls = extractUrls(body);
+            displayUrls(urls);
+        } else {
+            console.error(result.error);
+        }
     });
 }
 
@@ -29,26 +24,43 @@ function extractUrls(text) {
 }
 
 function displayUrls(urls) {
-    const container = document.getElementById('links-container');
+    const urlList = document.getElementById('url-list');
+    urlList.innerHTML = ''; // Clear existing list
+
     urls.forEach(url => {
-        const linkElement = document.createElement('div');
-        linkElement.innerHTML = `<a href="${url}" target="_blank">${url}</a>`;
-        const button = document.createElement('button');
-        button.textContent = 'Open in Secure Browser';
-        button.onclick = () => openInSecureBrowser(url);
-        linkElement.appendChild(button);
-        container.appendChild(linkElement);
+        const urlElement = document.createElement('div');
+        urlElement.className = 'url-item';
+
+        const link = document.createElement('a');
+        link.href = url;
+        link.textContent = url;
+        link.target = '_blank';
+
+        const icon = document.createElement('img');
+        icon.src = 'https://github.com/MSPViking/UNIC-Secure-Browser/main/OIP.jpg'; // Your icon URL
+        icon.alt = 'Open with UNIC Secure Browser';
+        icon.className = 'secure-browser-icon';
+        icon.addEventListener('click', () => openInSecureBrowser(url));
+
+        urlElement.appendChild(link);
+        urlElement.appendChild(icon);
+        urlList.appendChild(urlElement);
     });
 }
 
-async function openInSecureBrowser(url) {
-    const response = await fetch('http://109.189.76.223:9900/process-url', {
+function openInSecureBrowser(url) {
+    fetch('http://109.189.76.223:9900/process-url', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url: url }),
+        body: JSON.stringify({ url }),
+    })
+    .then(response => response.text())
+    .then(sessionUrl => {
+        window.open(sessionUrl, '_blank');
+    })
+    .catch(error => {
+        console.error('Error opening secure browser:', error);
     });
-    const result = await response.text();
-    window.open(result, '_blank');
 }
