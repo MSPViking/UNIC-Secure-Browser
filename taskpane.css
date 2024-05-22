@@ -1,0 +1,12 @@
+.url-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.secure-browser-icon {
+    width: 20px;
+    height: 20px;
+    margin-left: 10px;
+    cursor: pointer;
+}
